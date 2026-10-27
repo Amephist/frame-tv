@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14130f">
+<title>Frame Gallery</title>
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>Frame Gallery</h1>
+  <nav>
+    <button data-tab="browse" class="active">Browse</button>
+    <button data-tab="tv">On TV</button>
+  </nav>
+</header>
+
+<main>
+  <section id="browse">
+    <form id="search">
+      <select id="source"></select>
+      <input id="q" type="search" placeholder="Search — landscape, Monet, sea…" value="landscape">
+      <div class="toggles">
+        <label><input type="checkbox" id="paintings" checked> Paintings</label>
+        <label><input type="checkbox" id="landscape" checked> Landscape only</label>
+      </div>
+    </form>
+    <p id="count" class="muted"></p>
+    <div id="results" class="grid"></div>
+    <button id="more" class="ghost" hidden>Load more</button>
+  </section>
+
+  <section id="tv" hidden>
+    <p id="tv-note" class="small" hidden></p>
+    <div id="tv-status" class="panel"></div>
+    <div id="tv-art" class="grid"></div>
+  </section>
+</main>
+
+<dialog id="detail">
+  <form method="dialog" class="close"><button aria-label="Close">×</button></form>
+  <div class="stage">
+    <div class="frame"><img id="d-img" alt=""><div id="crop"><i data-c="nw"></i><i data-c="ne"></i><i data-c="sw"></i><i data-c="se"></i></div></div>
+    <div id="mat-preview" hidden><div class="win"><img id="m-img" alt=""></div></div>
+  </div>
+  <div class="meta">
+    <h2 id="d-title"></h2>
+    <p id="d-artist" class="muted"></p>
+    <p id="d-size" class="muted small"></p>
+    <p id="d-onTv" class="badge" hidden>On TV, sending replaces it</p>
+  </div>
+  <div class="controls">
+    <div class="seg">
+      <label><input type="radio" name="mode" value="fill" checked><span>Fill</span></label>
+      <label><input type="radio" name="mode" value="matte"><span>Passepartout</span></label>
+      <label><input type="radio" name="mode" value="tv"><span>TV matte</span></label>
+    </div>
+    <div class="row crop-opts">
+      <label class="check"><input type="checkbox" id="lock" checked> Lock 16:9</label>
+      <button type="button" id="crop-full" class="link">Whole image</button>
+    </div>
+    <p id="crop-hint" class="muted small"></p>
+    <div id="matte-opts" hidden>
+      <div id="matte-colors" class="swatches"></div>
+      <label class="range">Border <input type="range" id="border" min="0" max="25" value="10"><span id="border-val">10%</span></label>
+    </div>
+    <div id="tv-matte-opts" hidden>
+      <select id="tv-matte-type"></select>
+      <div id="tv-matte-colors" class="swatches"></div>
+      <p id="tv-matte-status" class="muted small">The TV draws this matte itself; the preview is approximate.</p>
+    </div>
+    <label class="check"><input type="checkbox" id="show" checked> Show on TV now</label>
+    <button id="send" class="primary">Send to TV</button>
+    <p id="d-status" class="small"></p>
+  </div>
+</dialog>
+
+<dialog id="tv-item">
+  <form method="dialog" class="close"><button aria-label="Close">×</button></form>
+  <img id="t-img" alt="">
+  <h2 id="t-title"></h2>
+  <p id="t-meta" class="muted"></p>
+  <div class="row">
+    <button id="t-show" class="primary">Show now</button>
+    <button id="t-delete" class="danger">Delete from TV</button>
+  </div>
+  <p id="t-status" class="small"></p>
+</dialog>
+
+<div id="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

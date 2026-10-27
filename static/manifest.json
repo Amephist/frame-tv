@@ -1,0 +1,9 @@
+{
+  "name": "Frame Gallery",
+  "short_name": "Frame",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#14130f",
+  "theme_color": "#14130f",
+  "icons": [{ "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
