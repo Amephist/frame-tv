@@ -135,6 +135,9 @@ async def tv_upload(req: UploadReq, request: Request):
         jpeg = await run_in_threadpool(imaging.prepare, r.content, req.mode, req.crop, req.border_color, req.border)
     except ValueError as e:
         raise HTTPException(400, str(e))
+    if req.mode == "tv" and req.tv_matte.startswith("modern") and imaging.ratio(jpeg) < imaging.TV_MODERN_MIN_RATIO:
+        # The TV accepts the upload but never displays it, then shows an error on screen.
+        raise HTTPException(400, "the TV's modern mattes need a crop at least 3:2 wide; use flexible or shadowbox")
     if await request.is_disconnected():
         raise Aborted()
 
@@ -155,7 +158,7 @@ async def tv_upload(req: UploadReq, request: Request):
             "mode": req.mode, "matte": matte, "bytes": len(jpeg),
         })
     except BaseException:
-        log.warning("upload of %s/%s failed after TV accepted it; deleting %s", req.source, req.id, content_id)
+        log.warning("upload of %s/%s failed after TV accepted it; deleting %s", req.source, req.id, content_id, exc_info=True)
         # shield: a cancelled request must still finish the rollback
         try:
             await asyncio.shield(run_in_threadpool(tv.delete, content_id))

@@ -5,6 +5,12 @@ from PIL import Image, ImageColor, ImageOps
 
 TV_W, TV_H = 3840, 2160
 Image.MAX_IMAGE_PIXELS = 300_000_000  # museum masters are big, and trusted
+TV_MODERN_MIN_RATIO = 1.5  # measured on this Frame: 3240x2160 shows with modern mattes, 3020x2160 doesn't
+
+
+def ratio(data: bytes) -> float:
+    w, h = Image.open(BytesIO(data)).size
+    return w / h
 
 
 def prepare(data: bytes, mode: str, crop: tuple[float, float, float, float] = (0, 0, 1, 1),

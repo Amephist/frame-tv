@@ -120,7 +120,21 @@ async function loadTvMattes() {
   applyTvMatte();
 }
 $("#tv-matte-type").addEventListener("change", (e) => { state.tvType = e.target.value; applyTvMatte(); });
+/* The TV never displays a "modern*" matte on a work narrower than 3:2 (it hangs, then shows an error). */
+const TV_MODERN_MIN_RATIO = 1.5;
+function fitTvType() {
+  if (!state.tvMattes) return;
+  const narrow = cropRatio() < TV_MODERN_MIN_RATIO;
+  for (const o of $("#tv-matte-type").options) o.disabled = narrow && o.value.startsWith("modern");
+  if (narrow && state.tvType.startsWith("modern")) {
+    state.tvType = state.tvMattes.types.find((t) => !t.startsWith("modern")) ?? state.tvType;
+    $("#tv-matte-type").value = state.tvType;
+  }
+  $("#tv-matte-status").textContent = "The TV draws this matte itself; the preview is approximate."
+    + (narrow ? " Modern mattes need a crop at least 3:2 wide." : "");
+}
 function applyTvMatte() {
+  fitTvType();
   document.querySelectorAll("#tv-matte-colors button").forEach((b) => b.classList.toggle("sel", b.dataset.color === state.tvColor));
   if (mode() === "tv") $("#send").disabled = !state.tvMattes;
   renderPreview();
@@ -186,6 +200,7 @@ function placeCrop() {
   const off = Math.abs(cropRatio() / TV_RATIO - 1) >= 0.01;
   $("#crop-hint").textContent = "Drag the box to move it, the corners to resize."
     + (mode() === "fill" && off ? " Not 16:9, so it'll get black bars on the TV." : "");
+  fitTvType();
   renderPreview();
 }
 
