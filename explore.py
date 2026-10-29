@@ -6,8 +6,7 @@ won't be prompted again.
 """
 from samsungtvws import SamsungTVWS
 
-TV_IP = "192.168.1.14"
-TOKEN_FILE = "token.txt"
+from app.config import TOKEN_FILE, TV_IP
 
 tv = SamsungTVWS(host=TV_IP, port=8002, token_file=TOKEN_FILE, name="frame-tv-explore")
 
