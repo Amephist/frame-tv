@@ -127,6 +127,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 #mat-preview .win::after { content: ""; position: absolute; inset: 0; }
 #mat-preview.shadowbox .win::after { box-shadow: inset 0 0 14px rgba(0, 0, 0, .65); }
 #mat-preview img { position: absolute; max-width: none; display: block; }
+#mat-preview #m-exact { inset: 0; width: 100%; height: 100%; }
 .range { display: flex; align-items: center; gap: 10px; }
 .range input { flex: 1; accent-color: var(--accent); }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -136,6 +137,8 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 }
 .swatches button.sel { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
 #tv-note { margin: 0 0 8px; }
+#d-scale { color: var(--muted); }
+#d-scale.warn { color: var(--accent); }
 #d-status.err, #t-status.err, #tv-note.err { color: var(--danger); }
 
 #tv-item img { display: block; max-width: 100%; max-height: 50dvh; margin: 0 auto 12px; border-radius: 6px; }

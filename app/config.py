@@ -14,7 +14,7 @@ DB_PATH = DATA_DIR / "frame-tv.db"
 # Category the TV files user-uploaded images under ("My Photos").
 MY_PHOTOS = "MY-C0002"
 
-USER_AGENT = "frame-tv/0.1 (+https://github.com/Amephist/frame-tv)"
+USER_AGENT = "frame-tv/0.2 (+https://github.com/Amephist/frame-tv)"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 THUMB_DIR.mkdir(parents=True, exist_ok=True)

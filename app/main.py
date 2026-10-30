@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections import OrderedDict
 from typing import Literal
 
 import httpx
@@ -19,25 +20,64 @@ log = logging.getLogger("frame-tv")
 app = FastAPI(title="frame-tv")
 http = httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=60, follow_redirects=True)
 STATIC = ROOT / "static"
+PREVIEW = (1280, 720)
+ORIGINALS_KEPT = 3
+_originals: OrderedDict[str, asyncio.Task] = OrderedDict()  # image url -> its download
 
 
 class Aborted(Exception):
     pass
 
 
-class UploadReq(BaseModel):
-    source: str
-    id: str
-    title: str = ""
-    artist: str = ""
-    date: str = ""
+class PrepareReq(BaseModel):
     image: str
     mode: Literal["fill", "matte", "tv"] = "fill"
     crop: tuple[float, float, float, float] = (0, 0, 1, 1)  # x, y, w, h as fractions of the work
     border_color: str = "#000000"
     border: float = 0.1
+
+
+class UploadReq(PrepareReq):
+    source: str
+    id: str
+    title: str = ""
+    artist: str = ""
+    date: str = ""
     tv_matte: str = Field("modern_polar", pattern=r"^[a-z]+_[a-z]+$")  # TV-drawn matte, mode "tv"
     show: bool = True
+
+
+async def _download(url: str) -> bytes:
+    r = await http.get(url)
+    r.raise_for_status()
+    return r.content
+
+
+async def original(url: str) -> bytes:
+    """The work's image, downloaded once for all its previews and the upload; the last few are kept."""
+    task = _originals.get(url)
+    if not task:
+        task = _originals[url] = asyncio.create_task(_download(url))
+        while len(_originals) > ORIGINALS_KEPT:
+            _originals.popitem(last=False)
+    _originals.move_to_end(url)
+    try:
+        # shield: a preview the browser abandons mustn't cancel a download others wait on
+        return await asyncio.shield(task)
+    except Exception as e:
+        if _originals.get(url) is task:
+            del _originals[url]
+        if isinstance(e, httpx.HTTPError):
+            raise HTTPException(502, f"download failed: {e}") from e
+        raise
+
+
+async def _prepare(req: PrepareReq, *size_quality) -> bytes:
+    data = await original(req.image)
+    try:
+        return await run_in_threadpool(imaging.prepare, data, req.mode, req.crop, req.border_color, req.border, *size_quality)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.middleware("http")
@@ -71,6 +111,12 @@ async def search(source: str, q: str = "", page: int = 0, paintings: bool = True
     for r in results:
         r["on_tv"] = db.find(r["source"], r["id"])
     return {"results": results, "total": total, "page": page, "page_size": PAGE_SIZE}
+
+
+@app.post("/api/preview")
+async def preview(req: PrepareReq):
+    """What tv_upload would send, scaled down."""
+    return Response(await _prepare(req, PREVIEW, 85), media_type="image/jpeg")
 
 
 @app.get("/api/tv/status")
@@ -126,15 +172,7 @@ async def tv_upload(req: UploadReq, request: Request):
 
     A work already on the TV is replaced: its previous copies are deleted once the new one is in place.
     """
-    try:
-        r = await http.get(req.image)
-        r.raise_for_status()
-    except httpx.HTTPError as e:
-        raise HTTPException(502, f"download failed: {e}")
-    try:
-        jpeg = await run_in_threadpool(imaging.prepare, r.content, req.mode, req.crop, req.border_color, req.border)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+    jpeg = await _prepare(req)
     if req.mode == "tv" and req.tv_matte.startswith("modern") and imaging.ratio(jpeg) < imaging.TV_MODERN_MIN_RATIO:
         # The TV accepts the upload but never displays it, then shows an error on screen.
         raise HTTPException(400, "the TV's modern mattes need a crop at least 3:2 wide; use flexible or shadowbox")

@@ -1,6 +1,6 @@
 const $ = (s) => document.querySelector(s);
-const state = { page: 0, total: 0, item: null, matColor: "#000000", upload: null };
-const TV_RATIO = 16 / 9;
+const state = { page: 0, total: 0, item: null, full: null, matColor: "#000000", upload: null, preview: null };
+const TV_W = 3840, TV_H = 2160, TV_RATIO = TV_W / TV_H;
 const MAT_COLORS = { Black: "#000000", Charcoal: "#1e1d1b", "Warm gray": "#6f6a62", Antique: "#e4ddcd", White: "#f5f3ee" };
 
 async function api(path, opts = {}) {
@@ -156,10 +156,14 @@ function applyMode() {
 }
 
 function openDetail(item) {
-  state.item = item; state.cropTouched = false;
+  state.item = item; state.full = null; state.cropTouched = false;
   $("#d-img").src = $("#m-img").src = item.thumb;
   const full = new Image();
-  full.onload = () => { if (state.item === item) $("#d-img").src = $("#m-img").src = item.image; };
+  full.onload = () => {
+    if (state.item !== item) return;
+    state.full = { w: full.naturalWidth, h: full.naturalHeight };
+    $("#d-img").src = $("#m-img").src = item.image;
+  };
   full.src = item.image;
   $("#d-title").textContent = item.title;
   $("#d-artist").textContent = [item.artist, item.date].filter(Boolean).join(" · ");
@@ -204,7 +208,46 @@ function placeCrop() {
   renderPreview();
 }
 
+/* Source pixels the crop covers (the server gets the same image the browser loaded) and how much
+   they're enlarged to reach the panel. */
+function showScale() {
+  const out = $("#d-scale"), [sw, sh] = state.full ? [state.full.w, state.full.h] : [state.item?.width, state.item?.height];
+  if (!sw || !sh) { out.textContent = ""; return; }
+  const cw = Math.round(sw * state.crop.w), ch = Math.round(sh * state.crop.h);
+  const pad = mode() === "matte" ? 2 * Math.round(TV_H * border()) : 0;
+  const s = Math.min((TV_W - pad) / cw, (TV_H - pad) / ch);
+  out.className = s >= 1.5 ? "small warn" : "small";
+  out.textContent = `Crop ${cw.toLocaleString()} × ${ch.toLocaleString()} px`
+    + (s <= 1.05 ? ", full resolution on the TV." : `, enlarged ${s.toFixed(1)}× on the TV${s >= 1.5 ? ", may look soft." : "."}`);
+}
+
+/* Passepartout: once the crop and matte settle, the server renders exactly what it would send.
+   Until then (and while dragging) the live approximation below shows. */
+function requestExact() {
+  const ex = $("#m-exact");
+  ex.hidden = true;
+  clearTimeout(requestExact.timer);
+  state.preview?.abort();
+  if (!state.item || !$("#detail").open || mode() !== "matte") return;
+  requestExact.timer = setTimeout(async () => {
+    const ctrl = (state.preview = new AbortController());
+    try {
+      const r = await fetch("/api/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prepBody()), signal: ctrl.signal,
+      });
+      if (!r.ok) return;  // keep the approximation
+      const url = URL.createObjectURL(await r.blob());
+      if (ctrl.signal.aborted) return URL.revokeObjectURL(url);
+      if (ex.src.startsWith("blob:")) URL.revokeObjectURL(ex.src);
+      ex.onload = () => { if (!ctrl.signal.aborted) ex.hidden = false; };
+      ex.src = url;
+    } catch {}
+  }, 400);
+}
+
 function renderPreview() {
+  showScale();
+  requestExact();
   const m = mode(), p = $("#mat-preview");
   if (m === "fill" || p.hidden) return;
   const color = m === "tv" ? state.tvMattes?.colors.find((c) => c.color === state.tvColor) : null;
@@ -274,14 +317,19 @@ $("#crop-full").addEventListener("click", () => {
   crop.addEventListener("pointercancel", end);
 })();
 
+/* What the server needs to render the image; shared by the preview and the upload. */
+function prepBody() {
+  return {
+    image: state.item.image, mode: mode(), crop: [state.crop.x, state.crop.y, state.crop.w, state.crop.h],
+    border_color: state.matColor, border: border(),
+  };
+}
+
 $("#send").addEventListener("click", async () => {
   const item = state.item;
-  const m = mode();
   const body = {
-    source: item.source, id: item.id, title: item.title, artist: item.artist, date: item.date, image: item.image,
-    mode: m, crop: [state.crop.x, state.crop.y, state.crop.w, state.crop.h],
-    border_color: state.matColor, border: border(), tv_matte: `${state.tvType}_${state.tvColor}`,
-    show: $("#show").checked,
+    ...prepBody(), source: item.source, id: item.id, title: item.title, artist: item.artist, date: item.date,
+    tv_matte: `${state.tvType}_${state.tvColor}`, show: $("#show").checked,
   };
   const status = $("#d-status");
   $("#send").disabled = true; $("#send").textContent = "Sending…";
@@ -306,6 +354,7 @@ $("#send").addEventListener("click", async () => {
   }
 });
 $("#detail").addEventListener("close", () => {
+  clearTimeout(requestExact.timer); state.preview?.abort(); $("#m-exact").hidden = true;
   if (state.upload) { state.upload.abort(); toast("Cancelled. Nothing was left on the TV."); }
 });
 

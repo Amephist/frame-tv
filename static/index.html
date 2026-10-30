@@ -43,7 +43,7 @@
   <form method="dialog" class="close"><button aria-label="Close">×</button></form>
   <div class="stage">
     <div class="frame"><img id="d-img" alt=""><div id="crop"><i data-c="nw"></i><i data-c="ne"></i><i data-c="sw"></i><i data-c="se"></i></div></div>
-    <div id="mat-preview" hidden><div class="win"><img id="m-img" alt=""></div></div>
+    <div id="mat-preview" hidden><div class="win"><img id="m-img" alt=""></div><img id="m-exact" alt="" hidden></div>
   </div>
   <div class="meta">
     <h2 id="d-title"></h2>
@@ -62,6 +62,7 @@
       <button type="button" id="crop-full" class="link">Whole image</button>
     </div>
     <p id="crop-hint" class="muted small"></p>
+    <p id="d-scale" class="small"></p>
     <div id="matte-opts" hidden>
       <div id="matte-colors" class="swatches"></div>
       <label class="range">Border <input type="range" id="border" min="0" max="25" value="10"><span id="border-val">10%</span></label>
