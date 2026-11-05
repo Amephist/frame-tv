@@ -25,8 +25,8 @@ it to the TV's Art Mode. It also lists, shows and deletes what's already on the 
 ## Setup
 
 ```sh
-python -m venv venv
-. venv/bin/activate
+python -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
 export FRAME_TV_IP=192.168.1.50   # your TV's address
 ```
@@ -43,6 +43,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 8700
 
 Then open `http://<this-machine>:8700` from a browser on your network. Use
 `--host 127.0.0.1` if you only need it on this machine.
+
+To keep it running, `systemd/frame-tv.service` is a systemd user unit that reads
+the variables below from `~/.config/frame-tv/env`:
+
+```sh
+ln -s "$PWD/systemd/frame-tv.service" ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now frame-tv
+```
 
 ## Configuration
 
