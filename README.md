@@ -1,5 +1,9 @@
 # frame-tv
 
+> [!NOTE]
+> **Archived (2026-11-07).** No longer maintained here: the gallery was folded into the author's
+> private home-automation setup. The code below still works as a standalone app.
+
 A small local web app for putting public-domain art on a Samsung Frame TV.
 Search open-access museum collections (The Met, Cleveland Museum of Art,
 Rijksmuseum, SMK, V&A, Wikimedia Commons), crop and matte a work, and upload
